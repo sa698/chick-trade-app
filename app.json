@@ -2,6 +2,7 @@
   "expo": {
     "name": "chick-trade-app",
     "slug": "chick-trade-app",
+    "scheme": "Chick Trade",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,8 +23,19 @@
       },
       "edgeToEdgeEnabled": true
     },
+    "expo": {
+      "android": {
+        "usesCleartextTraffic": true
+      }
+    },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

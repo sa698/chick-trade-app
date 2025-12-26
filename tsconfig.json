@@ -1,6 +1,12 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base",   
   "compilerOptions": {
-    "strict": true
+    "strict": true,                  // Enables strict type-checking
+    "baseUrl": ".",                  // Makes imports relative to project root
+    "paths": {
+      "@/*": ["src/*"],              // Allows imports like import X from "@/components/X"
+      "@assets/*": ["assets/*"]      // Allows imports like import img from "@assets/logo.png"
+    }
   }
 }
+
