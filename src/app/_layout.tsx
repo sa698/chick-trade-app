@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { Stack } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
@@ -23,10 +24,12 @@ const tokenCache = {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
-        <Stack screenOptions={{ headerShown: false }} />
-      </SafeAreaView>
-    </ClerkProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <SafeAreaView style={{ flex: 1 }} edges={["bottom", "left", "right"]}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </SafeAreaView>
+      </ClerkProvider>
+    </GestureHandlerRootView>
   );
 }

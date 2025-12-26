@@ -19,14 +19,16 @@ import { ReceiptForm } from "./components/reciept-form";
 //     ? "http://10.0.2.2:3000"
 //     : "http://localhost:3000";
 
- const API_BASE = "https://chick-trade-15.vercel.app";
+const API_BASE = "https://chick-trade-15.vercel.app";
 
 export default function ReceiptVoucherDetail() {
   const { organizationId, recieptId } = useLocalSearchParams();
   const { getToken } = useAuth();
 
   const [voucher, setVoucher] = useState<any | null>(null);
-  const [customers, setCustomers] = useState<{ label: string; value: string }[]>([]);
+  const [customers, setCustomers] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
 
@@ -52,7 +54,9 @@ export default function ReceiptVoucherDetail() {
           `${API_BASE}/api/${organizationId}/customer`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setCustomers(resCustomers.data.map((c: any) => ({ label: c.name, value: c.id })));
+        setCustomers(
+          resCustomers.data.map((c: any) => ({ label: c.name, value: c.id }))
+        );
       } catch (err) {
         console.error(err);
         Alert.alert("Error", "Failed to fetch data");
