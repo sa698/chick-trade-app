@@ -13,12 +13,14 @@ type CustomDatePickerProps = {
   control: any;
   name: string;
   placeholder?: string;
+     disabled?: boolean;
 };
 
 const CustomDatePicker = ({
   control,
   name,
   placeholder = "Select Date",
+    disabled = false,
 }: CustomDatePickerProps) => {
   const [show, setShow] = useState(false);
 
@@ -41,7 +43,7 @@ const CustomDatePicker = ({
 
           {error && <Text style={styles.error}>{error.message}</Text>}
 
-          {show && (
+          {!disabled&& show && (
             <DateTimePicker
               value={value instanceof Date ? value : new Date()}
               mode="date"

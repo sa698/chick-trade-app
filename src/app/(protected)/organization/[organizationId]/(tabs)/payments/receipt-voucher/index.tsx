@@ -5,18 +5,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView,
   StyleSheet,
+  Alert,
 } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth, useOrganization } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 
 /* ---------------- Types ---------------- */
-interface PaymentVoucher {
+interface ReceiptVoucher {
   id: string;
-  supplierId: string;
   amount: string;
   date: string;
   payment_type: string;
@@ -27,318 +27,260 @@ interface PaymentVoucher {
   };
 }
 
-/* ---------------- Helpers ---------------- */
-const formatDate = (date: string) => new Date(date).toLocaleDateString("en-GB");
+const API_BASE = "https://chick-trade-15.vercel.app";
+const PAGE_SIZE = 10;
 
-const formatAmount = (amount: string) =>
-  `₹ ${Number(amount).toLocaleString("en-IN")}`;
-
-export default function PaymentVoucherIndex() {
+export default function ReceiptVoucherIndex() {
   const router = useRouter();
   const { getToken } = useAuth();
   const { organization } = useOrganization();
   const organizationId = organization?.id;
 
-  const [data, setData] = useState<PaymentVoucher[]>([]);
+  const [data, setData] = useState<ReceiptVoucher[]>([]);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  const API_BASE = "https://chick-trade-15.vercel.app";
+  const formatAmount = (amount: string) => `₹${Number(amount).toLocaleString("en-IN")}`;
+  const formatDate = (date: string) => new Date(date).toLocaleDateString("en-GB");
 
-  // const API_BASE =
-  //   Platform.OS === "web"
-  //     ? "http://localhost:3000"
-  //     : Platform.OS === "android"
-  //     ? "http://10.0.2.2:3000"
-  //     : "http://localhost:3000";
+  /* ---------------- Fetch Logic ---------------- */
+  const fetchReceipts = useCallback(
+    async (pageToFetch: number, isRefreshing = false) => {
+      if (!organizationId) return;
 
-  /* ---------------- Fetch on page / org change ---------------- */
-  useFocusEffect(
-    useCallback(() => {
-      if (organizationId) {
-        fetchPayments(1); // reset to first page
-        setPage(1);
+      try {
+        if (isRefreshing) {
+          setLoading(true);
+        } else {
+          setIsFetchingNextPage(true);
+        }
+
+        const token = await getToken();
+        // Using "receipt" (standard spelling) - adjust if your backend specifically requires "reciept"
+        const res = await axios.get(
+          `${API_BASE}/api/${organizationId}/reciept?page=${pageToFetch}&limit=${PAGE_SIZE}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const newItems = res.data.data ?? [];
+        
+        setData((prev) => (isRefreshing ? newItems : [...prev, ...newItems]));
+        setHasMore(newItems.length === PAGE_SIZE);
+        setPage(pageToFetch);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+        setIsFetchingNextPage(false);
       }
-    }, [organizationId, page])
+    },
+    [organizationId, getToken]
   );
 
-  /* ---------------- Fetch API ---------------- */
-  const fetchPayments = async (pageNumber: number) => {
-    if (!organizationId) return;
+  useFocusEffect(
+    useCallback(() => {
+      fetchReceipts(1, true);
+    }, [organizationId])
+  );
 
-    try {
-      setLoading(true);
-
-      const token = await getToken();
-      if (!token) return;
-
-      console.log(
-        `${API_BASE}/api/${organizationId}/reciept?page=${pageNumber}&limit=10`
-      );
-      const res = await axios.get(
-        `${API_BASE}/api/${organizationId}/reciept?page=${pageNumber}&limit=10`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      setData(res.data.data);
-      setTotalPages(res.data.pagination.totalPages);
-    } catch (err) {
-      console.error("Reciept fetch error:", err);
-    } finally {
-      setLoading(false);
+  const loadMore = () => {
+    if (hasMore && !isFetchingNextPage && !loading && data.length > 0) {
+      fetchReceipts(page + 1);
     }
   };
 
-  /* ---------------- Loading org ---------------- */
-  if (!organizationId) {
+  const handleDelete = (id: string) => {
+    Alert.alert("Delete Receipt", "Are you sure you want to delete this receipt voucher?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const token = await getToken();
+            await axios.delete(`${API_BASE}/api/${organizationId}/reciept/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            fetchReceipts(1, true);
+          } catch (err) {
+            Alert.alert("Error", "Failed to delete receipt");
+          }
+        },
+      },
+    ]);
+  };
+
+  if (!organizationId || (loading && data.length === 0)) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={{ flex: 1,   }}>
-        {/* ---------------- Header ---------------- */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "600" }}>
-            Reciepts 
-          </Text>
-
-          <TouchableOpacity
-            onPress={() =>
-              router.push(
-                `/organization/${organizationId}/payments/receipt-voucher/new`
-              )
-            }
-          >
-            <Text style={{ color: "#2563eb", }}>+ Add</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      {/* ---------------- Header ---------------- */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerSubtitle}>Money Inflow</Text>
+          <Text style={styles.headerTitle}>Receipts</Text>
         </View>
 
-        {/* ---------------- Loader ---------------- */}
-        {loading && <ActivityIndicator size="large" />}
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ gap: 5 }}
-          ListEmptyComponent={() =>
-            !loading && (
-              <Text style={{ textAlign: "center", color: "#6b7280" }}>
-                No Reciept vouchers found
-              </Text>
-            )
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() =>
+            router.push(`/organization/${organizationId}/payments/receipt-voucher/new`)
           }
-          renderItem={({ item }) => (
-            <View
-              style={{
-                backgroundColor: "#fff",
-                padding: 14,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-              }}
-            >
-              {/* Top Row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 6,
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: "600" }}>
-                  {item.customer.name}
-                </Text>
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
+      </View>
 
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: "700",
-                    color: "#16a34a",
-                  }}
-                >
-                  {formatAmount(item.amount)}
-                </Text>
+      {/* ---------------- List ---------------- */}
+      <FlatList
+        data={data}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.2}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={60} color="#cbd5e1" />
+            <Text style={styles.emptyText}>No receipt vouchers found</Text>
+          </View>
+        )}
+        ListFooterComponent={() =>
+          isFetchingNextPage ? (
+            <ActivityIndicator style={{ marginVertical: 20 }} color="#2563eb" />
+          ) : (
+            <View style={{ height: 40 }} />
+          )
+        }
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.customerName} numberOfLines={1}>
+                {item.customer?.name || "Unknown Customer"}
+              </Text>
+              <Text style={styles.amountText}>{formatAmount(item.amount)}</Text>
+            </View>
+
+            <View style={styles.cardBody}>
+              <View style={styles.dateRow}>
+                <Ionicons name="calendar-outline" size={14} color="#64748b" />
+                <Text style={styles.dateText}>{formatDate(item.date)}</Text>
               </View>
-
-              {/* Middle Row */}
+              
               <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 4,
-                }}
+                style={[
+                  styles.badge,
+                  { backgroundColor: item.payment_type === "Cash" ? "#dcfce7" : "#e0f2fe" },
+                ]}
               >
-                <Text style={{ color: "#6b7280", fontSize: 13 }}>
-                  {formatDate(item.date)}
-                </Text>
-
-                <View
-                  style={{
-                    backgroundColor:
-                      item.payment_type === "Cash" ? "#dcfce7" : "#e0f2fe",
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: 999,
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color:
-                        item.payment_type === "Cash" ? "#166534" : "#075985",
-                    }}
-                  >
-                    {item.payment_type}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Description */}
-              {item.description ? (
                 <Text
-                  style={{
-                    marginTop: 4,
-                    fontSize: 13,
-                    color: "#374151",
-                  }}
+                  style={[
+                    styles.badgeText,
+                    { color: item.payment_type === "Cash" ? "#166534" : "#075985" },
+                  ]}
                 >
-                  {item.description}
+                  {item.payment_type}
                 </Text>
-              ) : null}
-
-              {/* ---------------- Edit / Delete Buttons ---------------- */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "flex-end",
-                  gap: 12,
-                  marginTop: 10,
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push(
-                      `/organization/${organizationId}/payments/receipt-voucher/${item.id}`
-                    )
-                  }
-                >
-                  <Text style={{ color: "#2563eb", fontWeight: "600" }}>
-                    Edit
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={async () => {
-                    try {
-                      const token = await getToken();
-                      await axios.delete(
-                        `${API_BASE}/api/${organizationId}/reciept/${item.id}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                      );
-                      alert("Deleted successfully");
-                      fetchPayments(page); // refresh list
-                    } catch (err) {
-                      console.error(err);
-                      alert("Failed to delete");
-                    }
-                  }}
-                >
-                  <Text style={{ color: "red", fontWeight: "600" }}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
-          )}
-        />
 
-        {/* ---------------- List ---------------- */}
-        {/* <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ gap: 10 }}
-          ListEmptyComponent={() =>
-            !loading && (
-              <Text style={{ textAlign: "center", color: "#6b7280" }}>
-                No Reciept vouchers found
+            {item.description && (
+              <Text style={styles.descriptionText} numberOfLines={2}>
+                {item.description}
               </Text>
-            )
-          }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() =>
-                router.push(
-                  `/payments/Reciept-voucher/${item.id}?organizationId=${organizationId}`
-                )
-              }
-              style={{
-                backgroundColor: "#fff",
-                padding: 14,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "#e5e7eb",
-              }}
-            >
-              {/* Top Row */}
+            )}
 
-        {/* ---------------- Pagination ---------------- */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 12,
-            alignItems: "center",
-          }}
-        >
-          <TouchableOpacity
-            disabled={page === 1 || loading}
-            onPress={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <Text style={{ opacity: page === 1 ? 0.4 : 1 }}>Prev</Text>
-          </TouchableOpacity>
+            <View style={styles.actions}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(`/organization/${organizationId}/payments/receipt-voucher/${item.id}`)
+                }
+                style={styles.actionBtn}
+              >
+                <Ionicons name="create-outline" size={16} color="#2563eb" />
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
 
-          <Text>
-            Page {page} / {totalPages}
-          </Text>
-
-          <TouchableOpacity
-            disabled={page === totalPages || loading}
-            onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            <Text style={{ opacity: page === totalPages ? 0.4 : 1 }}>Next</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+              <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
+                <Ionicons name="trash-outline" size={16} color="#dc2626" />
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
     backgroundColor: "#fff",
-    justifyContent: "center",
-    padding: 20,
-    gap: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
   },
+  headerSubtitle: { fontSize: 13, color: "#64748b", fontWeight: "500", marginBottom: -2 },
+  headerTitle: { fontSize: 22, fontWeight: "800", color: "#0f172a" },
+  addButton: {
+   backgroundColor: "#111827",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 4,
+  },
+  addButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  listContent: { padding: 16 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 10 },
+      android: { elevation: 2 },
+    }),
+  },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  customerName: { fontSize: 16, fontWeight: "700", color: "#1e293b", flex: 1, marginRight: 10 },
+  amountText: { fontSize: 17, fontWeight: "800", color: "#16a34a" }, // Green for inflows
+  cardBody: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, alignItems: "center" },
+  dateRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  dateText: { color: "#64748b", fontSize: 13, fontWeight: "500" },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  badgeText: { fontSize: 11, fontWeight: "700" },
+  descriptionText: { marginTop: 12, color: "#64748b", fontSize: 13, lineHeight: 18 },
+  actions: { 
+    flexDirection: "row", 
+    justifyContent: "flex-end", 
+    gap: 20, 
+    marginTop: 15, 
+    borderTopWidth: 1, 
+    borderTopColor: "#f8fafc", 
+    paddingTop: 12 
+  },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+  editText: { color: "#2563eb", fontWeight: "600", fontSize: 14 },
+  deleteText: { color: "#dc2626", fontWeight: "600", fontSize: 14 },
+  emptyState: { alignItems: "center", marginTop: 100 },
+  emptyText: { color: "#94a3b8", marginTop: 12, fontSize: 15, fontWeight: "500" },
 });

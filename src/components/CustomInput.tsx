@@ -10,8 +10,9 @@ import {
 type CustomInputProps = {
   control: any;
   name: string;
+    disabled?: boolean;
 } & TextInputProps;
-const CustomInput = ({ control, name, ...props }: CustomInputProps) => {
+const CustomInput = ({ control, name,  disabled = false, ...props }: CustomInputProps) => {
   return (
     <Controller
       control={control}
@@ -23,6 +24,7 @@ const CustomInput = ({ control, name, ...props }: CustomInputProps) => {
         <View style={styles.container}>
           <TextInput
             {...props}
+              editable={!disabled}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
