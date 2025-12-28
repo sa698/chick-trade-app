@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import SalesForm from "./SalesForm";
 import CustomButton from "@/components/CustomButtom";
 
@@ -32,16 +31,17 @@ export default function SalesSection({ orderDate, customer, data }: SectionProps
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [lastTap, setLastTap] = useState<number>(0);
 
+  // Keep state in sync with data prop updates
   useEffect(() => {
     if (data.card) setSales(data.card);
   }, [data.card]);
 
   const handleSuccess = (updatedOrNewSale: Sale) => {
     if (editingSale) {
-      // Update the item in the local list
+      // Update existing item in local state
       setSales((prev) => prev.map((s) => (s.id === updatedOrNewSale.id ? updatedOrNewSale : s)));
     } else {
-      // Add new item to the list
+      // Add new item to the top of the list
       setSales((prev) => [updatedOrNewSale, ...prev]);
     }
     setAddingSales(false);
@@ -51,6 +51,7 @@ export default function SalesSection({ orderDate, customer, data }: SectionProps
   const handleDoubleTap = (item: Sale) => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
+    
     if (lastTap && now - lastTap < DOUBLE_TAP_DELAY) {
       setEditingSale(item);
       setAddingSales(true);
@@ -61,6 +62,7 @@ export default function SalesSection({ orderDate, customer, data }: SectionProps
 
   return (
     <View style={styles.container}>
+      {/* Header with Title and Add Button */}
       <View style={styles.headerRow}>
         <Text style={styles.heading}>{data.title}</Text>
         {!addingSales && (
@@ -75,12 +77,13 @@ export default function SalesSection({ orderDate, customer, data }: SectionProps
         )}
       </View>
 
+      {/* Conditional Form Rendering (New or Edit) */}
       {addingSales && (
         <SalesForm
           listId={data.id}
           orderDate={orderDate}
           customer={customer}
-          initialData={editingSale} // NEW: Pass data for editing
+          initialData={editingSale}
           onCancel={() => {
             setAddingSales(false);
             setEditingSale(null);
@@ -89,54 +92,68 @@ export default function SalesSection({ orderDate, customer, data }: SectionProps
         />
       )}
 
-      <FlatList
-        data={sales}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleDoubleTap(item)}>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.customerName}>{item.customer?.name}</Text>
-                <Text style={styles.amountText}>₹{item.amount}</Text>
+      {/* FIX: Replaced FlatList with map to solve the 
+        "VirtualizedLists should never be nested" error.
+      */}
+      <View style={styles.listContainer}>
+        {sales.length > 0 ? (
+          sales.map((item) => (
+            <TouchableOpacity 
+              key={item.id} 
+              activeOpacity={0.8} 
+              onPress={() => handleDoubleTap(item)}
+            >
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.customerName}>{item.customer?.name}</Text>
+                  <Text style={styles.amountText}>₹{item.amount}</Text>
+                </View>
+
+                <View style={styles.detailsRow}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Boxes</Text>
+                    <Text style={styles.detailValue}>{item.box}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Weight</Text>
+                    <Text style={styles.detailValue}>{item.weight} kg</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Rate</Text>
+                    <Text style={styles.detailValue}>{item.price}</Text>
+                  </View>
+                </View>
+
+                {item.paid !== undefined && item.paid > 0 && (
+                  <View style={styles.paidBadge}>
+                    <Text style={styles.paidText}>Paid: ₹{item.paid}</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.detailsRow}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Boxes</Text>
-                  <Text style={styles.detailValue}>{item.box}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Weight</Text>
-                  <Text style={styles.detailValue}>{item.weight} kg</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Rate</Text>
-                  <Text style={styles.detailValue}>{item.price}</Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={() => (
+            </TouchableOpacity>
+          ))
+        ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Double click an item to edit.</Text>
+            <Text style={styles.emptyText}>No sales recorded. Double click an item to edit.</Text>
           </View>
         )}
-      />
+      </View>
     </View>
   );
 }
 
-// ... styles remain the same
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, paddingVertical: 10 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   heading: { fontSize: 20, fontWeight: "800", color: "#111827" },
   smallButton: { paddingVertical: 6, paddingHorizontal: 12 },
+  listContainer: { paddingBottom: 20 },
   card: {
     backgroundColor: "#fff",
     padding: 16,

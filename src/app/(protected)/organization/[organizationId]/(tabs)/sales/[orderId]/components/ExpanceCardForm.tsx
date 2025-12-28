@@ -1,19 +1,15 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useForm, Controller } from "react-hook-form";
+import React, { forwardRef, useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+// ADD SubmitHandler to the import below
+import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useAuth } from "@clerk/clerk-expo";
 import { useLocalSearchParams } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
+import CustomComboBox from "@/components/CustomComboBox";
+import CustomInput from "@/components/CustomInput";
+import CustomButton from "@/components/CustomButtom";
 
 interface Expance {
   id: string;
@@ -24,263 +20,198 @@ interface ExpanceCardFormProps {
   listId: string;
   orderDate: string;
   expance: Expance[];
+  initialData?: any;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedSale: any) => void;
 }
 
-const formSchema = z.object({
-  expanceId: z.string().min(1, "Expense category is required"),
+const salesFormSchema = z.object({
+  expanceId: z.string().min(1, "Expance is required"),
   listId: z.string(),
   orderDate: z.string(),
-  amount: z.coerce.number().min(1, "Amount must be at least 1"),
+ amount: z.coerce.number().min(1, "Amount must be greater than 0"),
   desc: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type SalesFormValues = z.output<typeof salesFormSchema>;
 
 const API_BASE = "https://chick-trade-15.vercel.app";
 
-export default function ExpanceCardForm({
-  listId,
-  orderDate,
-  expance,
-  onCancel,
-  onSuccess,
-}: ExpanceCardFormProps) {
-  const { getToken } = useAuth();
-  const { organizationId } = useLocalSearchParams<{ organizationId: string }>();
-  const [loading, setLoading] = useState(false);
+const ExpanceCardForm = forwardRef<View, ExpanceCardFormProps>(
+  ({ listId, orderDate, expance, initialData, onCancel, onSuccess }, ref) => {
+    const [loading, setLoading] = useState(false);
+    const { organizationId } = useLocalSearchParams<{
+      organizationId: string;
+    }>();
+    const { getToken } = useAuth();
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<FormValues>({
-    // resolver: zodResolver(formSchema), // Re-enabled resolver
-    defaultValues: {
-      expanceId: "",
-      listId,
-      orderDate,
-      amount: 0,
-      desc: "",
-    },
-  });
+    const isEditing = !!initialData;
 
-  const selectedExpanceId = watch("expanceId");
+    const {
+      control,
+      handleSubmit,
+      watch,
+      setValue,
+      reset,
+      formState: { errors },
+    } = useForm<SalesFormValues>({
+      resolver: zodResolver(salesFormSchema) as any,
+      mode: "onTouched",
+      defaultValues: {
+        expanceId: initialData?.expance?.id || "",
+        listId: initialData?.listId || listId,
+        orderDate: initialData?.orderDate || orderDate,
+        desc: initialData?.desc || "",
+        amount: initialData?.amount || 0,
+      },
+    });
 
-  const onSubmit = async (data: FormValues) => {
-    try {
-      setLoading(true);
-      const token = await getToken();
+    useEffect(() => {
+      if (initialData) {
+        reset({
+          expanceId: initialData.expance?.id,
+          listId: initialData.listId,
+          orderDate: initialData.orderDate,
+          desc: initialData.desc,
+          amount: initialData.amount,
+        });
+      }
+    }, [initialData, reset]);
 
-      await axios.post(
-        `${API_BASE}/api/${organizationId}/card-expence`,
-        data,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+    // FIXED: Changed SubmitHandler type to SalesFormValues
+    const onSubmit: SubmitHandler<SalesFormValues> = async (data) => {
+      if (!organizationId) return;
 
-      onSuccess();
-    } catch (err: any) {
-      console.error(err);
-      Alert.alert("Error", "Something went wrong while saving the expense.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setLoading(true);
+        const token = await getToken();
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Add New Expense</Text>
+        const url = isEditing
+          ? `${API_BASE}/api/${organizationId}/card-expence/${initialData.id}`
+          : `${API_BASE}/api/${organizationId}/card-expence`;
 
-      {/* Expense Select Chips */}
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.optionsContainer}>
-        {expance.map((item) => (
+        const response = isEditing
+          ? await axios.patch(url, data, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          : await axios.post(url, data, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+        onSuccess(response.data);
+        Alert.alert("Success", isEditing ? "Expance updated" : "Expance added");
+      } catch (err: any) {
+        Alert.alert("Error", "Could not save expance info");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <View ref={ref} style={styles.container}>
+        <Text style={styles.formTitle}>
+          {isEditing ? "Edit Expance Entry" : "New Expance Entry"}
+        </Text>
+
+        <Text style={styles.label}>Category</Text>
+        <CustomComboBox
+          control={control}
+          name="expanceId"
+          options={expance.map((s) => ({ label: s.name, value: s.id }))}
+          placeholder="Select Category"
+        />
+
+        <Text style={styles.label}>Amount</Text>
+        <CustomInput
+          control={control}
+          name="amount"
+          placeholder="0.00"
+          keyboardType="decimal-pad"
+        />
+     <Text style={styles.label}>Description</Text>
+        <CustomInput
+          control={control}
+          name="desc"
+          placeholder="Optional details..."
+          keyboardType="default"
+        />
+
+        <View style={styles.buttons}>
           <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.option,
-              selectedExpanceId === item.id && styles.optionActive,
-            ]}
-            onPress={() => setValue("expanceId", item.id)}
+            style={[styles.button, styles.cancel]}
+            onPress={onCancel}
           >
-            <Text style={[
-              styles.optionText,
-              selectedExpanceId === item.id && styles.optionTextActive
-            ]}>
-              {item.name}
-            </Text>
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-        ))}
+
+          <View style={{ flex: 1.5 }}>
+            <CustomButton
+              text={
+                loading
+                  ? "Saving..."
+                  : isEditing
+                  ? "Update Expance"
+                  : "Add Expance"
+              }
+              onPress={handleSubmit(onSubmit)}
+              disabled={loading}
+            />
+          </View>
+        </View>
       </View>
-      {errors.expanceId && (
-        <Text style={styles.error}>{errors.expanceId.message}</Text>
-      )}
+    );
+  }
+);
 
-      {/* Amount Input */}
-      <Text style={styles.label}>Amount (₹)</Text>
-      <Controller
-        control={control}
-        name="amount"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            style={styles.input}
-            placeholder="0.00"
-            keyboardType="numeric"
-            value={value === 0 ? "" : value.toString()}
-            onChangeText={onChange}
-          />
-        )}
-      />
-      {errors.amount && (
-        <Text style={styles.error}>{errors.amount.message}</Text>
-      )}
-
-      {/* Remarks/Description Input */}
-      <Text style={styles.label}>Remarks</Text>
-      <Controller
-        control={control}
-        name="desc"
-        render={({ field: { onChange, value } }) => (
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Add notes..."
-            multiline
-            numberOfLines={3}
-            value={value}
-            onChangeText={onChange}
-          />
-        )}
-      />
-
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.submit}
-          onPress={handleSubmit(onSubmit)}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Save Expense</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.cancel} 
-          onPress={onCancel}
-          disabled={loading}
-        >
-          <Text style={styles.btnTextSecondary}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
+// ... (Styles remain the same)
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
     padding: 16,
+    backgroundColor: "#fff",
     borderRadius: 12,
     marginVertical: 8,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
+  formTitle: {
+    fontSize: 16,
+    fontWeight: "800",
     color: "#111827",
+    marginBottom: 15,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  option: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 20,
-    backgroundColor: "#f9fafb",
-  },
-  optionActive: {
-    borderColor: "#111827",
-    backgroundColor: "#111827",
-  },
-  optionText: {
-    fontSize: 13,
-    color: "#4b5563",
-  },
-  optionTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: "#fff",
-    fontSize: 16,
-    color: "#111827",
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  error: {
-    color: "#dc2626",
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#4b5563",
+    textTransform: "uppercase",
   },
-  actions: {
+  row: { flexDirection: "row", gap: 12, marginBottom: 10 },
+  rowItem: { flex: 1 },
+  readOnlyBox: {
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    justifyContent: "center",
+    height: 48,
+  },
+  readOnlyText: { color: "#059669", fontWeight: "700", fontSize: 15 },
+  buttons: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 20,
-  },
-  submit: {
-    flex: 2,
-    backgroundColor: "#111827",
-    paddingVertical: 14,
-    borderRadius: 10,
+    marginTop: 15,
     alignItems: "center",
   },
-  cancel: {
+  button: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
   },
-  btnText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-  btnTextSecondary: {
-    color: "#4b5563",
-    fontWeight: "600",
-    fontSize: 15,
-  },
+  cancel: { backgroundColor: "#f3f4f6" },
+  cancelText: { color: "#374151", fontWeight: "700" },
 });
+
+export default ExpanceCardForm;

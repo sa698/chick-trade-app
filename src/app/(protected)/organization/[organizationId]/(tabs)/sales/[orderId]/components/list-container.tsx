@@ -91,13 +91,13 @@ const expenseData = useMemo(() => data.find((d) => d.title === "Expense"), [data
         );
       case "Expense":
         return (
-          null
-          // <ExpenseSection
-          //   orderId={orderId}
-          //   orderDate={orderDate}
-          //   expense={expense}
-          //   data={expenseData}
-          // />
+          
+          <ExpenseSection
+            orderId={orderId}
+            orderDate={orderDate}
+            expance={expance}
+            data={expenseData}
+          />
         );
       default:
         return null;

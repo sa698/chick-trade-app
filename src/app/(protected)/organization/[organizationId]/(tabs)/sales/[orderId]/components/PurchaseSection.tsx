@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import CustomButton from "@/components/CustomButtom";
-// import PurchaseForm from "./PurchaseForm"; // You will create this next
+import PurchaseCardForm from "./PurchaseCardForm";
 
 interface Supplier {
   id: string;
@@ -12,35 +17,64 @@ interface PurchaseItem {
   id: string;
   supplier: Supplier;
   qty: number;
-  rate: number;
+  weight: number;
+  box: number;
+  price: number; // Changed from 'rate' to match common naming, update if needed
   amount: number;
+  listId: string;
+  orderDate: string;
 }
 
 interface PurchaseSectionProps {
   orderId: string;
   orderDate: string;
   supplier: Supplier[];
-  data: any; // Data from the parent ListContainer
+  data: any;
 }
 
 export default function PurchaseSection({
-  orderId,
   orderDate,
   supplier,
   data,
 }: PurchaseSectionProps) {
-  // 1. Manage local list state (initialized from props)
-  const [purchases, setPurchases] = useState<PurchaseItem[]>(data?.card || []);
+  // 1. Local list state
+  const [purchases, setPurchases] = useState<PurchaseItem[]>(data.PurchaseCard || []);
   const [isAdding, setIsAdding] = useState(false);
+
+  // State for Double Tap & Editing
+  const [editingPurchase, setEditingPurchase] = useState<PurchaseItem | null>(null);
+  const [lastTap, setLastTap] = useState<number>(0);
 
   // Sync state if global data updates
   useEffect(() => {
-    if (data?.card) setPurchases(data.card);
-  }, [data?.card]);
+    if (data?.PurchaseCard) {
+      setPurchases(data.PurchaseCard);
+    }
+  }, [data?.PurchaseCard]);
 
-  const handleSuccess = (newPurchase: PurchaseItem) => {
-    setPurchases((prev) => [newPurchase, ...prev]);
+  const handleSuccess = (updatedOrNewPurchase: PurchaseItem) => {
+    if (editingPurchase) {
+      setPurchases((prev) =>
+        prev.map((p) =>
+          p.id === updatedOrNewPurchase.id ? updatedOrNewPurchase : p
+        )
+      );
+    } else {
+      setPurchases((prev) => [updatedOrNewPurchase, ...prev]);
+    }
     setIsAdding(false);
+    setEditingPurchase(null);
+  };
+
+  const handleDoubleTap = (item: PurchaseItem) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (lastTap && now - lastTap < DOUBLE_TAP_DELAY) {
+      setEditingPurchase(item);
+      setIsAdding(true);
+    } else {
+      setLastTap(now);
+    }
   };
 
   return (
@@ -50,64 +84,77 @@ export default function PurchaseSection({
         {!isAdding && (
           <CustomButton
             text="＋ Add Purchase"
-            onPress={() => setIsAdding(true)}
+            onPress={() => {
+              setEditingPurchase(null);
+              setIsAdding(true);
+            }}
             style={styles.smallButton}
           />
         )}
       </View>
 
-      {/* ---- FORM ---- */}
+      {/* ---- FORM (Shows for New or Edit) ---- */}
       {isAdding && (
-        <View style={styles.formWrapper}>
-          {/* Note: Create PurchaseForm similar to SalesForm but with supplier selection */}
-          <Text style={styles.placeholderText}>
-            [PurchaseForm Component Here]
-          </Text>
-          <TouchableOpacity 
-            onPress={() => setIsAdding(false)} 
-            style={styles.cancelLink}
-          >
-            <Text style={styles.cancelLinkText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+        <PurchaseCardForm
+          listId={data.id}
+          orderDate={orderDate}
+          supplier={supplier}
+          initialData={editingPurchase}
+          onCancel={() => {
+            setIsAdding(false);
+            setEditingPurchase(null);
+          }}
+          onSuccess={handleSuccess}
+        />
       )}
 
-      {/* ---- LIST ---- */}
-      <FlatList
-        data={purchases}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.supplierName}>
-                {item.supplier?.name || "Unknown Supplier"}
-              </Text>
-              <Text style={styles.amountText}>₹{item.amount}</Text>
-            </View>
+      {/* ---- LIST (Using map to avoid Nesting Error) ---- */}
+      <View style={styles.listContainer}>
+        {purchases.length > 0 ? (
+          purchases.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.8}
+              onPress={() => handleDoubleTap(item)}
+            >
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.customerName}>
+                    {item.supplier?.name || "Unknown Supplier"}
+                  </Text>
+                  <Text style={styles.amountText}>₹{item.amount.toLocaleString()}</Text>
+                </View>
 
-            <View style={styles.detailsRow}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Quantity</Text>
-                <Text style={styles.detailValue}>{item.qty}</Text>
+                <View style={styles.detailsRow}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Boxes</Text>
+                    <Text style={styles.detailValue}>{item.box}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Weight</Text>
+                    <Text style={styles.detailValue}>{item.weight} kg</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Rate</Text>
+                    {/* Ensure 'price' matches your API field name */}
+                    <Text style={styles.detailValue}>{(item as any).price || (item as any).rate}</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Rate</Text>
-                <Text style={styles.detailValue}>{item.rate || 0}</Text>
-              </View>
-            </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No purchases found. Double click to add/edit.</Text>
           </View>
         )}
-        ListEmptyComponent={() => (
-          <Text style={styles.emptyText}>No purchases recorded.</Text>
-        )}
-        scrollEnabled={false} // Let the parent container handle scrolling
-      />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, paddingVertical: 10 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -116,39 +163,38 @@ const styles = StyleSheet.create({
   },
   heading: { fontSize: 20, fontWeight: "800", color: "#111827" },
   smallButton: { paddingVertical: 6, paddingHorizontal: 12 },
-  formWrapper: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
+  listContainer: { marginTop: 4 },
   card: {
-    padding: 16,
     backgroundColor: "#fff",
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#f3f4f6",
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 5,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    paddingBottom: 8,
   },
-  supplierName: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  amountText: { fontSize: 16, fontWeight: "700", color: "#2563eb" }, // Blue for purchases
-  detailsRow: { flexDirection: "row", gap: 20 },
-  detailItem: { alignItems: "flex-start" },
-  detailLabel: { fontSize: 11, color: "#6b7280", textTransform: "uppercase" },
+  customerName: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  amountText: { fontSize: 16, fontWeight: "700", color: "#059669" },
+  detailsRow: { flexDirection: "row", justifyContent: "space-between" },
+  detailItem: { alignItems: "center" },
+  detailLabel: {
+    fontSize: 11,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    marginBottom: 2,
+  },
   detailValue: { fontSize: 14, fontWeight: "600", color: "#374151" },
-  emptyText: { textAlign: "center", color: "#9ca3af", marginTop: 20 },
-  cancelLink: { marginTop: 10, alignItems: "center" },
-  cancelLinkText: { color: "#ef4444", fontWeight: "600" },
-  placeholderText: { textAlign: 'center', color: '#6b7280', fontStyle: 'italic'}
+  emptyContainer: { padding: 40, alignItems: "center" },
+  emptyText: { color: "#9ca3af", fontSize: 14 },
 });
