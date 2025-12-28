@@ -6,6 +6,7 @@ import {
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import axios from "axios";
@@ -14,7 +15,7 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import CreateOrderSheet from "./components/CreateOrderSheet";
 import CustomButton from "@/components/CustomButtom";
 import { router } from "expo-router";
-
+import { Ionicons } from "@expo/vector-icons"; // Ensure you have expo-icons
 interface Order {
   id: string;
   date: string;
@@ -150,68 +151,98 @@ export default function OrdersScreen() {
     setHasMore(true);
     fetchOrders(1, true);
   };
-
-  if (loading && orders.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#111827" />
+  const renderOrderItem = ({ item }: { item: Order }) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      style={styles.orderCard}
+      onPress={() =>
+        router.push(`/organization/${organizationId}/sales/${item.id}`)
+      }
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.dateBadge}>
+          <Ionicons name="calendar-outline" size={14} color="#6366f1" />
+          <Text style={styles.dateText}>
+            {new Date(item.date).toLocaleDateString()}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
       </View>
-    );
-  }
+
+      <View style={styles.cardContent}>
+        <View style={styles.infoRow}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="cube" size={18} color="#4f46e5" />
+          </View>
+          <View>
+            <Text style={styles.infoLabel}>Product</Text>
+            <Text style={styles.infoValue}>{item.product.name}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.infoRow, { marginTop: 12 }]}>
+          <View style={[styles.iconCircle, { backgroundColor: "#f0fdf4" }]}>
+            <Ionicons name="bus" size={18} color="#16a34a" />
+          </View>
+          <View>
+            <Text style={styles.infoLabel}>Vehicle</Text>
+            <Text style={styles.infoValue}>{item.vehicle.name}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f9fafb" }}>
-      {/* Add Order Button */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => sheetRef.current?.expand()}
-      >
-        <Text style={styles.addButtonText}>＋ Add Order</Text>
-      </TouchableOpacity>
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* Orders List */}
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.dateText}>
-              {new Date(item.date).toDateString()}
-            </Text>
-            <Text style={styles.productName}>Product: {item.product.name}</Text>
-            <Text style={styles.vehicleName}>Vehicle: {item.vehicle.name}</Text>
-             <CustomButton
-  text="Go"
-  onPress={() =>
-    router.push(`/organization/${organizationId}/sales/${item.id}`)
-  }
-/>
+      {/* Custom Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerSubtitle}>Manage your trade</Text>
+          <Text style={styles.headerTitle}>Orders</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.headerAddBtn}
+          onPress={() => sheetRef.current?.expand()}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-          </View>
-        )}
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.2} // Triggers when 20% from the bottom
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        contentContainerStyle={styles.listContainer}
-        ListFooterComponent={() => {
-          if (isFetchingNextPage) {
-            return <ActivityIndicator style={{ marginVertical: 20 }} />;
+      {loading && orders.length === 0 ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+        </View>
+      ) : (
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => item.id}
+          renderItem={renderOrderItem}
+          onEndReached={() =>
+            hasMore && !isFetchingNextPage && fetchOrders(page + 1)
           }
-          if (!hasMore && orders.length > 0) {
-            return <Text style={styles.endText}>No more orders to show</Text>;
+          onEndReachedThreshold={0.3}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#4f46e5"
+            />
           }
-          return null;
-        }}
-        ListEmptyComponent={() => (
-          <View style={styles.centered}>
-            <Text style={{ color: "#6b7280" }}>No orders found.</Text>
-          </View>
-        )}
-      />
+          contentContainerStyle={styles.listContainer}
+          ListFooterComponent={() =>
+            isFetchingNextPage ? (
+              <ActivityIndicator style={{ margin: 20 }} color="#4f46e5" />
+            ) : null
+          }
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No orders found</Text>
+          }
+        />
+      )}
 
-      {/* Bottom Sheet */}
       <BottomSheet
         ref={sheetRef}
         snapPoints={snapPoints}
@@ -222,10 +253,10 @@ export default function OrdersScreen() {
           organizationId={organizationId!}
           products={products}
           vehicles={vehicles}
-          onClose={() => sheetRef.current?.close()} // PASS THIS
+          onClose={() => sheetRef.current?.close()}
           onSuccess={() => {
             sheetRef.current?.close();
-            fetchOrders(1, true);
+            onRefresh();
           }}
         />
       </BottomSheet>
@@ -234,36 +265,85 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
+  mainContainer: { flex: 1, backgroundColor: "#f8fafc" },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+  },
+  headerTitle: { fontSize: 28, fontWeight: "800", color: "#1e293b" },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  headerAddBtn: {
+    backgroundColor: "#4f46e5",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 50,
+    elevation: 4,
+    shadowColor: "#4f46e5",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
-  listContainer: { flexGrow: 1, padding: 10 },
-  card: {
+  listContainer: { padding: 20, paddingBottom: 100 },
+  orderCard: {
     backgroundColor: "#fff",
+    borderRadius: 20,
     padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
-  dateText: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  productName: { color: "#4b5563", marginTop: 6 },
-  vehicleName: { color: "#9ca3af", marginTop: 2 },
-  addButton: {
-    backgroundColor: "#111827",
-    padding: 14,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 10,
+    marginBottom: 15,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f8fafc",
   },
-  addButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  endText: { textAlign: "center", color: "#9ca3af", marginVertical: 20 },
+  dateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 6,
+  },
+  dateText: { fontSize: 13, fontWeight: "600", color: "#6366f1" },
+  cardContent: { gap: 4 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#f5f3ff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  infoValue: { fontSize: 15, color: "#334155", fontWeight: "700" },
+  emptyText: { textAlign: "center", color: "#94a3b8", marginTop: 40 },
 });

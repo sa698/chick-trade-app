@@ -14,9 +14,13 @@ import { useLocalSearchParams } from "expo-router";
 import SalesSection from "./SalesSection";
 import PurchaseSection from "./PurchaseSection";
 import ExpenseSection from "./ExpenseSection";
+import Summery from "./summery";
 
 /* Enable LayoutAnimation for Android */
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -44,24 +48,33 @@ export default function ListContainer({
 
   const { organizationId } = useLocalSearchParams<{ organizationId: string }>();
 
-// Option 1: Exact Match (Fastest)
-// returns the object {id: "...", title: "Sales", ...}
-const salesData = useMemo(() => data.find((d) => d.title === "Sales"), [data]);
+  // Option 1: Exact Match (Fastest)
+  // returns the object {id: "...", title: "Sales", ...}
+  const salesData = useMemo(
+    () => data.find((d) => d.title === "Sales"),
+    [data]
+  );
 
-// returns the object {id: "...", title: "Purchase", ...}
-const purchaseData = useMemo(() => data.find((d) => d.title === "Purchase"), [data]);
+  // returns the object {id: "...", title: "Purchase", ...}
+  const purchaseData = useMemo(
+    () => data.find((d) => d.title === "Purchase"),
+    [data]
+  );
 
-// returns the object {id: "...", title: "Expense", ...}
-const expenseData = useMemo(() => data.find((d) => d.title === "Expense"), [data]);
-// Option 2: Case-Insensitive (Safest if API changes)
- 
+  // returns the object {id: "...", title: "Expense", ...}
+  const expenseData = useMemo(
+    () => data.find((d) => d.title === "Expense"),
+    [data]
+  );
+  // Option 2: Case-Insensitive (Safest if API changes)
+
   const toggleExpand = () => {
     // Customizing the animation for a smoother experience
     LayoutAnimation.configureNext({
       duration: 300,
-      create: { type: 'easeInEaseOut', property: 'opacity' },
-      update: { type: 'easeInEaseOut' },
-      delete: { type: 'easeInEaseOut', property: 'opacity' }
+      create: { type: "easeInEaseOut", property: "opacity" },
+      update: { type: "easeInEaseOut" },
+      delete: { type: "easeInEaseOut", property: "opacity" },
     });
     setExpanded((prev) => !prev);
   };
@@ -91,9 +104,8 @@ const expenseData = useMemo(() => data.find((d) => d.title === "Expense"), [data
         );
       case "Expense":
         return (
-          
           <ExpenseSection
-            orderId={orderId}
+            // orderId={orderId}
             orderDate={orderDate}
             expance={expance}
             data={expenseData}
@@ -113,10 +125,7 @@ const expenseData = useMemo(() => data.find((d) => d.title === "Expense"), [data
             key={tab}
             activeOpacity={0.7}
             onPress={() => setActiveTab(tab)}
-            style={[
-              styles.tabButton,
-              activeTab === tab && styles.activeTab,
-            ]}
+            style={[styles.tabButton, activeTab === tab && styles.activeTab]}
           >
             <Text
               style={[
@@ -136,8 +145,10 @@ const expenseData = useMemo(() => data.find((d) => d.title === "Expense"), [data
       </View>
 
       {/* ---------- CONTENT CONTAINER ---------- */}
-      <View style={styles.contentWrapper}>
-        {renderContent()}
+      <View style={styles.contentWrapper}>{renderContent()}</View>
+      {/* ---------- SUMMERY SECTION (AT BOTTOM) ---------- */}
+      <View style={styles.footerContainer}>
+        <Summery data={data} />
       </View>
     </View>
   );
@@ -147,6 +158,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 12,
     backgroundColor: "#f9fafb",
+    flex: 1,
   },
   tabs: {
     flexDirection: "row",
@@ -187,7 +199,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#4b5563",
   },
+
   contentWrapper: {
-    overflow: "hidden", // Important for LayoutAnimation
+    overflow: "hidden",
+    flexGrow: 1, // Allows content to grow, but keeps footer at bottom
+  },
+  footerContainer: {
+    marginTop: "auto", // Pushes the summary to the very bottom of the parent view
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
   },
 });
