@@ -12,7 +12,7 @@ import { useState, useMemo } from "react";
 
 type Option = { label: string; value: string };
 
-type LargeComboBoxProps = {
+type CustomComboBoxProps = {
   control: any;
   name: string;
   options: Option[];
@@ -20,13 +20,13 @@ type LargeComboBoxProps = {
    disabled?: boolean;
 };
 
-export default function LargeComboBox({
+export default function CustomComboBox({
   control,
   name,
   options,
   placeholder = "Select supplier",
   disabled = false,
-}: LargeComboBoxProps) {
+}: CustomComboBoxProps) {
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState("");
 

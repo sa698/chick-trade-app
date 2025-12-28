@@ -16,6 +16,7 @@ import CustomDatePicker from "@/components/CustomDatePicker";
 import CustomComboBox from "@/components/CustomComboBox";
 import CustomInput from "@/components/CustomInput";
 import { useAuth } from "@clerk/clerk-expo";
+import { router } from "expo-router";
 
 interface Props {
   organizationId: string;
@@ -76,11 +77,13 @@ export default function CreateOrderSheet({
 
       reset();
       onSuccess();
+     
     } catch (e) {
       console.error("Order creation failed:", e);
       // Optional: Add alert or toast here for user feedback
     } finally {
       setLoading(false);
+       router.push("");
     }
   };
 

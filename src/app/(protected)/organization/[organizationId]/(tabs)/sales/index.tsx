@@ -12,6 +12,8 @@ import axios from "axios";
 import { useAuth, useOrganization } from "@clerk/clerk-expo";
 import BottomSheet from "@gorhom/bottom-sheet";
 import CreateOrderSheet from "./components/CreateOrderSheet";
+import CustomButton from "@/components/CustomButtom";
+import { router } from "expo-router";
 
 interface Order {
   id: string;
@@ -178,6 +180,13 @@ export default function OrdersScreen() {
             </Text>
             <Text style={styles.productName}>Product: {item.product.name}</Text>
             <Text style={styles.vehicleName}>Vehicle: {item.vehicle.name}</Text>
+             <CustomButton
+  text="Go"
+  onPress={() =>
+    router.push(`/organization/${organizationId}/sales/${item.id}`)
+  }
+/>
+
           </View>
         )}
         onEndReached={onEndReached}
