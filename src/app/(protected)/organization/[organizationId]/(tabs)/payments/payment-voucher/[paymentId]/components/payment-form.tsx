@@ -61,7 +61,7 @@ interface PaymentFormProps {
 
      const API_BASE = "https://chick-trade-15.vercel.app";
 /* ---------------- Payment Form ---------------- */
-export function PaymentForm({
+export default function PaymentForm({
   initialData,
   suppliers,
   loadingSuppliers,

@@ -86,7 +86,8 @@ export default function SalesSection({
         <Text style={styles.heading}>{data.title}</Text>
         {!addingSales && (
           <CustomButton
-            text="＋ Add Sale"
+            text="＋Add Sale"
+            variant="danger"
             onPress={() => {
               setEditingSale(null);
               setAddingSales(true);
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   heading: { fontSize: 18, fontWeight: "800", color: "#1e293b" },
-  smallButton: { paddingVertical: 5, paddingHorizontal: 10 },
+  smallButton: { paddingVertical: 5, paddingHorizontal: 10,     },
   listContainer: { paddingBottom: 20 },
   card: {
     backgroundColor: "#fff",

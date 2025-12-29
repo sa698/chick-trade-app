@@ -61,7 +61,7 @@ interface PettyCashFormProps {
 
      const API_BASE = "https://chick-trade-15.vercel.app";
 /* ---------------- PettyCash Form ---------------- */
-export function PettyCashForm({
+export default function PettyCashForm({
   initialData,
   pettyMaster,
   loadingCustomers,

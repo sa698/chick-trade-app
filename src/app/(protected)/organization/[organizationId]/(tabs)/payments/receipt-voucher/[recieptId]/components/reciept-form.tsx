@@ -61,7 +61,7 @@ interface ReceiptFormProps {
 
      const API_BASE = "https://chick-trade-15.vercel.app";
 /* ---------------- Receipt Form ---------------- */
-export function ReceiptForm({
+export default function ReceiptForm({
   initialData,
   customers,
   loadingCustomers,

@@ -10,8 +10,8 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { useAuth } from "@clerk/clerk-expo";
-import { ReceiptForm } from "./components/reciept-form";
-
+import ReceiptForm from "./components/reciept-form";
+ 
 // const API_BASE =
 //   Platform.OS === "web"
 //     ? "http://localhost:3000"

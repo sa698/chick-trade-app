@@ -1,45 +1,101 @@
-import { Text, Pressable, StyleSheet, PressableProps } from "react-native";
+import {
+  Text,
+  Pressable,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+  PressableProps,
+} from "react-native";
+
+type ButtonVariant = "primary" | "outline" | "danger";
 
 type CustomButtonProps = {
   text: string;
   disabled?: boolean;
+  loading?: boolean;
+  variant?: ButtonVariant;
+
+  containerStyle?: ViewStyle;
+  textStyle?: TextStyle;
 } & PressableProps;
 
-const CustomButton = ({ text, disabled, ...props }: CustomButtonProps) => {
+const CustomButton = ({
+  text,
+  disabled,
+  loading,
+  variant = "primary",
+  containerStyle,
+  textStyle,
+  ...props
+}: CustomButtonProps) => {
   return (
     <Pressable
-      disabled={disabled}
+      disabled={disabled || loading}
       {...props}
       style={({ pressed }) => [
-        styles.button,
-        disabled && styles.disabled,          // style when disabled
-        pressed && !disabled && styles.pressed // optional pressed effect
+        styles.base,
+        styles[variant],
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+        containerStyle, // 👈 custom style from caller
       ]}
     >
-      <Text style={styles.buttonText}>{text}</Text>
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
+          {text}
+        </Text>
+      )}
     </Pressable>
   );
 };
 
 export default CustomButton;
-
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: "#4353FD",
-    padding: 12,
-    borderRadius: 5,
+  base: {
+    height: 42,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
-  buttonText: {
-    color: "white",
-    fontWeight: "600",
+
+  /* Variants */
+  primary: {
+    backgroundColor: "#4353FD",
+  },
+  outline: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#4353FD",
+  },
+  danger: {
+    backgroundColor: "#E53935",
+  },
+
+  /* Text */
+  text: {
     fontSize: 16,
+    fontWeight: "600",
   },
+  primaryText: {
+    color: "#fff",
+  },
+  outlineText: {
+    color: "#4353FD",
+  },
+  dangerText: {
+    color: "#fff",
+  },
+
+  /* States */
   disabled: {
-    backgroundColor: "#a0a0a0", // gray background when disabled
-    opacity: 0.7,
+    opacity: 0.5,
   },
   pressed: {
-    opacity: 0.8, // optional visual feedback when pressed
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
   },
 });

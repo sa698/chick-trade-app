@@ -21,6 +21,7 @@ interface Order {
   date: string;
   product: { id: string; name: string };
   vehicle: { id: string; name: string };
+  desc: string;
 }
 
 interface Option {
@@ -152,45 +153,57 @@ export default function OrdersScreen() {
     fetchOrders(1, true);
   };
   const renderOrderItem = ({ item }: { item: Order }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.orderCard}
-      onPress={() =>
-        router.push(`/organization/${organizationId}/sales/${item.id}`)
-      }
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.dateBadge}>
-          <Ionicons name="calendar-outline" size={14} color="#6366f1" />
-          <Text style={styles.dateText}>
-            {new Date(item.date).toLocaleDateString()}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-      </View>
-
-      <View style={styles.cardContent}>
-        <View style={styles.infoRow}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="cube" size={18} color="#4f46e5" />
+    console.log("Rendering order item:", item),
+    (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.orderCard}
+        onPress={() =>
+          router.push({
+            pathname: `/organization/${organizationId}/sales/${item.id}`,
+            params: { date: item.date, desc: item.desc },
+          })
+        }
+      >
+        <View style={styles.cardHeader}>
+          <View style={styles.dateBadge}>
+            <Ionicons name="calendar-outline" size={14} color="#6366f1" />
+            <Text style={styles.dateText}>
+              {new Date(item.date).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </Text>
           </View>
-          <View>
-            <Text style={styles.infoLabel}>Product</Text>
-            <Text style={styles.infoValue}>{item.product.name}</Text>
-          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </View>
 
-        <View style={[styles.infoRow, { marginTop: 12 }]}>
-          <View style={[styles.iconCircle, { backgroundColor: "#f0fdf4" }]}>
-            <Ionicons name="bus" size={18} color="#16a34a" />
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="cube" size={18} color="#4f46e5" />
+            </View>
+            <View>
+              {/* <Text style={styles.infoLabel}>Product</Text> */}
+              <Text style={styles.infoValue}>{item.product.name}</Text>
+            </View>
+            <View style={[styles.iconCircle, { backgroundColor: "#f0fdf4" }]}>
+              <Ionicons name="bus" size={18} color="#16a34a" />
+            </View>
+            <View>
+              {/* <Text style={styles.infoLabel}>Vehicle</Text> */}
+              <Text style={styles.infoValue}>{item.vehicle.name}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.infoLabel}>Vehicle</Text>
-            <Text style={styles.infoValue}>{item.vehicle.name}</Text>
-          </View>
+          {item.desc && (
+            <View style={[styles.infoRow, { marginTop: 12 }]}>
+              <Text style={styles.infoValueDesc}>{item.desc}</Text>
+            </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    )
   );
 
   return (
@@ -345,5 +358,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   infoValue: { fontSize: 15, color: "#334155", fontWeight: "700" },
+  infoValueDesc: {
+    paddingLeft: 45,
+    fontSize: 14,
+    color: "#a72b2bff",
+    fontWeight: "500",
+  },
   emptyText: { textAlign: "center", color: "#94a3b8", marginTop: 40 },
 });

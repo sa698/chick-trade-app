@@ -1,12 +1,23 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { MaterialCommunityIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
+import {
+  MaterialCommunityIcons,
+  FontAwesome5,
+  Ionicons,
+} from "@expo/vector-icons";
+import OrderSummarySheet from "./OrderSummarySheet";
+import { useLocalSearchParams } from "expo-router";
 
 interface SummeryProps {
   data: any[];
 }
 
 const Summery: React.FC<SummeryProps> = ({ data }) => {
+ const { date, desc } = useLocalSearchParams<{
+    date?: string;
+    desc?: string;
+  }>();
+  console.log("summary data",data);
   let customerWeight = 0;
   let supplierWeight = 0;
   let expanceAmount = 0;
@@ -32,50 +43,82 @@ const Summery: React.FC<SummeryProps> = ({ data }) => {
   const weightLoss = supplierWeight - customerWeight;
 
   return (
-    <View style={styles.container}>
-      {/* Sales */}
-      <View style={[styles.card, { backgroundColor: "#f0fdf4" }]}>
-        <View style={styles.headerLine}>
-          <MaterialCommunityIcons name="scale-bathroom" size={12} color="#166534" />
-          <Text style={[styles.label, { color: "#166534" }]} numberOfLines={1}>Sale</Text>
-        </View>
-        <Text style={[styles.value, { color: "#166534" }]} numberOfLines={1}>
-          {customerWeight.toFixed(1)}k
-        </Text>
-      </View>
+    <View>
+      <View style={styles.container}>
+        {/* Sales */}
 
-      {/* Purchase */}
-      <View style={[styles.card, { backgroundColor: "#fef2f2" }]}>
-        <View style={styles.headerLine}>
-          <MaterialCommunityIcons name="truck-delivery" size={12} color="#991b1b" />
-          <Text style={[styles.label, { color: "#991b1b" }]} numberOfLines={1}>Pur</Text>
+        <View style={[styles.card, { backgroundColor: "#f0fdf4" }]}>
+          <View style={styles.headerLine}>
+            <MaterialCommunityIcons
+              name="scale-bathroom"
+              size={12}
+              color="#166534"
+            />
+            <Text
+              style={[styles.label, { color: "#166534" }]}
+              numberOfLines={1}
+            >
+              Sale
+            </Text>
+          </View>
+          <Text style={[styles.value, { color: "#166534" }]} numberOfLines={1}>
+            {customerWeight.toFixed(1)}k
+          </Text>
         </View>
-        <Text style={[styles.value, { color: "#991b1b" }]} numberOfLines={1}>
-          {supplierWeight.toFixed(1)}k
-        </Text>
-      </View>
 
-      {/* Weight Loss */}
-      <View style={[styles.card, { backgroundColor: "#fffbeb" }]}>
-        <View style={styles.headerLine}>
-          <Ionicons name="trending-down" size={12} color="#92400e" />
-          <Text style={[styles.label, { color: "#92400e" }]} numberOfLines={1}>Loss</Text>
+        {/* Purchase */}
+        <View style={[styles.card, { backgroundColor: "#fef2f2" }]}>
+          <View style={styles.headerLine}>
+            <MaterialCommunityIcons
+              name="truck-delivery"
+              size={12}
+              color="#991b1b"
+            />
+            <Text
+              style={[styles.label, { color: "#991b1b" }]}
+              numberOfLines={1}
+            >
+              Pur
+            </Text>
+          </View>
+          <Text style={[styles.value, { color: "#991b1b" }]} numberOfLines={1}>
+            {supplierWeight.toFixed(1)}k
+          </Text>
         </View>
-        <Text style={[styles.value, { color: "#92400e" }]} numberOfLines={1}>
-          {weightLoss.toFixed(1)}k
-        </Text>
-      </View>
 
-      {/* Expense */}
-      <View style={[styles.card, { backgroundColor: "#eff6ff" }]}>
-        <View style={styles.headerLine}>
-          <FontAwesome5 name="money-bill-wave" size={10} color="#1e40af" />
-          <Text style={[styles.label, { color: "#1e40af" }]} numberOfLines={1}>Exp</Text>
+        {/* Weight Loss */}
+        <View style={[styles.card, { backgroundColor: "#fffbeb" }]}>
+          <View style={styles.headerLine}>
+            <Ionicons name="trending-down" size={12} color="#92400e" />
+            <Text
+              style={[styles.label, { color: "#92400e" }]}
+              numberOfLines={1}
+            >
+              Loss
+            </Text>
+          </View>
+          <Text style={[styles.value, { color: "#92400e" }]} numberOfLines={1}>
+            {weightLoss.toFixed(1)}k
+          </Text>
         </View>
-        <Text style={[styles.value, { color: "#1e40af" }]} numberOfLines={1}>
-          ₹{Math.round(expanceAmount)}
-        </Text>
+
+        {/* Expense */}
+        <View style={[styles.card, { backgroundColor: "#eff6ff" }]}>
+          <View style={styles.headerLine}>
+            <FontAwesome5 name="money-bill-wave" size={10} color="#1e40af" />
+            <Text
+              style={[styles.label, { color: "#1e40af" }]}
+              numberOfLines={1}
+            >
+              Exp
+            </Text>
+          </View>
+          <Text style={[styles.value, { color: "#1e40af" }]} numberOfLines={1}>
+            ₹{Math.round(expanceAmount)}
+          </Text>
+        </View>
       </View>
+     
     </View>
   );
 };

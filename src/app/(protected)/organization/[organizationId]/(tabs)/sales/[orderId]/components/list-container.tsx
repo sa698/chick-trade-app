@@ -138,10 +138,9 @@ export default function ListContainer({
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity onPress={toggleExpand} style={styles.expandButton}>
-          {/* Using a text symbol is fine, but Lucide-react-native Chevron is better if available */}
+        {/* <TouchableOpacity onPress={toggleExpand} style={styles.expandButton}>
           <Text style={styles.expandText}>{expanded ? "▲" : "▼"}</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* ---------- CONTENT CONTAINER ---------- */}

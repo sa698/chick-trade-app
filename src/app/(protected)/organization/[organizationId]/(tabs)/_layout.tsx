@@ -34,7 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="sales"
         options={{
-          title: "Saless",
+          title: "Sales",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart-outline" size={size} color={color} />
           ),

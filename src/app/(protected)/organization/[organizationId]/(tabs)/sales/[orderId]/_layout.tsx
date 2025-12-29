@@ -5,17 +5,20 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function OrderIdLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-  
-  // Get the date from the URL parameters
-  const { date } = useLocalSearchParams<{ date?: string }>();
 
+  // Get the date from the URL parameters
+  const { date, desc } = useLocalSearchParams<{
+    date?: string;
+    desc?: string;
+  }>();
+  console.log("Order Date from params:", date);
   // Format the date for the header title
-  const displayDate = date 
-    ? new Date(date).toLocaleDateString('en-GB', { 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
-      }) 
+  const displayDate = date
+    ? new Date(date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }) + (desc ? ` - ${desc}` : "")
     : "Order Details";
 
   if (!isLoaded) return null;
@@ -30,7 +33,7 @@ export default function OrderIdLayout() {
           Native Header provided by Expo Router 
       */}
       <Stack.Screen
-        options={{ 
+        options={{
           title: displayDate, // Sets the Header Name as the Order Date
           headerTitleStyle: {
             fontWeight: "800",
@@ -39,8 +42,10 @@ export default function OrderIdLayout() {
           },
           headerShadowVisible: false, // Cleaner, modern look
           headerRight: () => (
-            <TouchableOpacity 
-              onPress={() => Alert.alert("Options", "What would you like to do?")}
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert("Options", "What would you like to do?")
+              }
               style={styles.optionButton}
             >
               <Ionicons name="ellipsis-vertical" size={22} color="#4f46e5" />
@@ -58,12 +63,12 @@ export default function OrderIdLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#f8fafc" 
+  container: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
   },
-  content: { 
-    flex: 1 
+  content: {
+    flex: 1,
   },
   optionButton: {
     padding: 8,

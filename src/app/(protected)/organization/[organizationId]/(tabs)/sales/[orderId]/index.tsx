@@ -12,6 +12,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import ListContainer from "./components/list-container";
 import { set } from "zod";
+import OrderSummarySheet from "./components/OrderSummarySheet";
 
 // import Summery from "./components/Summery";
 
@@ -26,6 +27,7 @@ export default function OrderIdScreen() {
 
   const [loading, setLoading] = useState(true);
   const [orderDate, setOrderDate] = useState("");
+  const [data, setData] = useState<any[]>([]);
   const [lists, setLists] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -35,7 +37,7 @@ export default function OrderIdScreen() {
   //   Platform.OS === "android"
   //     ? "http://10.0.2.2:3000"
   //     : "http://localhost:3000";
-   const API_BASE = "https://chick-trade-15.vercel.app";
+  const API_BASE = "https://chick-trade-15.vercel.app";
 
   useEffect(() => {
     if (!organizationId || !orderId) return;
@@ -53,9 +55,10 @@ export default function OrderIdScreen() {
             },
           }
         );
- 
+
         setOrderDate(res.data.date);
         setLists(res.data.lists || []);
+        setData(res.data || []);
       } catch (error) {
         console.error("Failed to load order details", error);
       } finally {
@@ -119,9 +122,7 @@ export default function OrderIdScreen() {
       </View>
     );
   }
-console.log("Order Lists:", lists);
-console.log("orderId:", orderId);
-console.log("orderDate:", orderDate);
+  
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <ListContainer
@@ -133,7 +134,9 @@ console.log("orderDate:", orderDate);
         data={lists}
       />
       {/* <Text>Sales ID: {orderId}</Text> */}
-      {/* <Summery data={lists} /> */}
+      <View>
+        <OrderSummarySheet order={data}   isAdmin={true} />
+      </View>
     </ScrollView>
   );
 }

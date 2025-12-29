@@ -406,7 +406,7 @@ export default function SalesForm({
       <View style={styles.row}>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Box</Text>
-          <CustomInput control={control} name="box" placeholder="0" keyboardType="number-pad" />
+          <CustomInput control={control} name="box" placeholder="1" keyboardType="number-pad" />
         </View>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Weight (kg)</Text>

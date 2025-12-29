@@ -30,7 +30,7 @@ const OrderSchema = z.object({
   date: z.date(),
   productId: z.string().min(1, "Select product"),
   vehicleId: z.string().min(1, "Select vehicle"),
-  description: z.string().optional(),
+  desc: z.string().optional(),
 });
 
 type OrderFormValues = z.infer<typeof OrderSchema>;
@@ -57,7 +57,7 @@ export default function CreateOrderSheet({
       date: new Date(),
       productId: "",
       vehicleId: "",
-      description: "",
+      desc: "",
     },
   });
 
@@ -126,7 +126,7 @@ export default function CreateOrderSheet({
 
         <CustomInput
           control={control}
-          name="description"
+          name="desc"
           disabled={loading}
           placeholder="Description (optional)"
         />
